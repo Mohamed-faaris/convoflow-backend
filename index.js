@@ -136,6 +136,64 @@ app.post("/lead/:id", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Welcome to the ConvoFlow API server");
+});
+
+// WhatsApp OAuth
+app.get("/oauth", (req, res) => {
+  const { code, state } = req.query;
+  console.log("OAuth code:", code);
+  console.log("OAuth state:", state);
+
+  // Here you would typically exchange the code for an access token
+  // with the WhatsApp API, using your client ID and client secret.
+
+  // For now, let's just return a success message
+  if (code && state) {
+    res.send("OAuth successful");
+  } else {
+    res.status(500).send("OAuth failed");
+  }
+});
+
+// WhatsApp Webhook Verification
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+      console.log("Webhook verified!");
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
+  }
+});
+
+// WhatsApp Webhook to receive messages
+app.post("/webhook", (req, res) => {
+  const body = req.body;
+  console.log("Received webhook event:", JSON.stringify(body, null, 2));
+
+  if (body.object) {
+    if (
+      body.entry &&
+      body.entry[0].changes &&
+      body.entry[0].changes[0].value.messages
+    ) {
+      const message = body.entry[0].changes[0].value.messages[0];
+      console.log("Message from:", message.from);
+      console.log("Message text:", message.text?.body);
+    }
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
 // Basic Express setup with no routes
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
